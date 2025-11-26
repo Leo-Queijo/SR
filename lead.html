@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="pt-BR" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CRM — Inteligência Preditiva</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand_blue: "#005BFF",
+            brand_orange: "#FF6B00"
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar { width: 10px; height:10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 8px; }
+    .card-border { border-color: rgba(0,0,0,0.06); }
+  </style>
+</head>
+
+<body class="antialiased bg-gray-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition">
+
+  <div class="flex min-h-screen">
+
+    <!-- SIDEBAR -->
+    <aside class="hidden md:flex flex-col w-64 bg-white dark:bg-slate-800 shadow p-6 gap-6 fixed inset-y-0">
+      <div class="flex items-center gap-3">
+        <div class="h-12 w-12 rounded-xl bg-brand_blue text-white flex items-center justify-center text-xl font-bold shadow-md">SR</div>
+        <div>
+          <h1 class="text-lg font-bold">CRM São Rafael</h1>
+          <p class="text-sm text-gray-500 dark:text-slate-400 -mt-1">Inteligência Preditiva</p>
+        </div>
+      </div>
+
+      <nav class="flex flex-col gap-2 flex-1">
+          <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">Menu</a>
+          <a href="./Alertas.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">Alertas</a>
+          <a href="./preditivo.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">IA Pacientes</a>
+          <a href="./lead.html" class="px-4 py-2 rounded-lg bg-brand_blue text-white font-medium">Leads</a>
+      </nav>
+
+      <div class="mt-auto text-sm text-gray-500 dark:text-slate-400">
+        <div><strong>Modelo:</strong> Regressão logística (simulada)</div>
+        <div class="mt-2">Treinamento automático com dados rotulados.</div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 md:ml-64 p-8">
+
+      <!-- HEADER -->
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-3xl font-extrabold">🔮 Inteligência Preditiva — Leads</h1>
+          <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">Previsão em tempo real, histórico e treinamento automático por colaborador.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button id="btnTheme" class="px-3 py-2 rounded-md border bg-white dark:bg-slate-700">
+            <span id="themeEmoji">🌙</span> <span id="themeLabel" class="ml-2">Modo Escuro</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- GENERATE FORM -->
+      <section class="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="p-4 bg-white dark:bg-slate-800 rounded-xl shadow card-border">
+          <h2 class="font-semibold mb-3">Gerar Previsão (entrada rápida)</h2>
+
+          <div class="space-y-2">
+            <input id="inName" placeholder="Nome" class="w-full p-2 border rounded" />
+            <input id="inPhone" placeholder="Telefone" class="w-full p-2 border rounded" />
+            <input id="inDuration" type="number" placeholder="Duração da chamada (segundos)" class="w-full p-2 border rounded" />
+            <input id="inResponseTime" type="number" placeholder="Tempo até retorno (horas)" class="w-full p-2 border rounded" />
+            <select id="inHasEmail" class="w-full p-2 border rounded">
+              <option value="1">Tem email</option>
+              <option value="0">Sem email</option>
+            </select>
+            <select id="inInterest" class="w-full p-2 border rounded">
+              <option value="0">Interesse: 0 (nenhum)</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5 (muito)</option>
+            </select>
+            <select id="inCollab" class="w-full p-2 border rounded"></select>
+
+            <div class="flex gap-2 mt-2">
+              <button id="btnPredict" class="flex-1 px-4 py-2 rounded bg-brand_blue text-white">🔎 Gerar Previsão</button>
+              <button id="btnSaveLead" class="flex-1 px-4 py-2 rounded border">💾 Salvar como lead real</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PREDICTION RESULT -->
+        <div class="p-4 bg-white dark:bg-slate-800 rounded-xl shadow card-border flex flex-col justify-between">
+          <div>
+            <h2 class="font-semibold mb-2">Resultado da Previsão</h2>
+            <div class="text-sm text-gray-500 dark:text-slate-400 mb-4">Probabilidade e recomendação do próximo passo.</div>
+
+            <div class="mb-4">
+              <div class="text-xs text-gray-500">Probabilidade de virar lead</div>
+              <div id="predProb" class="text-4xl font-bold text-brand_blue">—%</div>
+              <div class="mt-2 h-2 w-full bg-gray-200 dark:bg-slate-700 rounded-full">
+                <div id="predBar" class="h-full w-0 bg-brand_blue rounded transition-all"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs text-gray-500">Classificação</div>
+              <div id="predLabel" class="text-2xl font-semibold mt-1">—</div>
+              <div id="predAction" class="mt-3 p-3 bg-gray-50 dark:bg-slate-700 rounded">—</div>
+            </div>
+          </div>
+
+          <div class="mt-4 text-right">
+            <button id="btnAddHistory" class="px-4 py-2 rounded bg-brand_orange text-white">➕ Adicionar ao histórico</button>
+          </div>
+        </div>
+
+        <!-- METRICS -->
+        <div class="p-4 bg-white dark:bg-slate-800 rounded-xl shadow card-border">
+          <h2 class="font-semibold mb-3">Painel Rápido</h2>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 bg-gray-50 dark:bg-slate-700 rounded">
+              <div class="text-xs text-gray-500">Total previsões</div>
+              <div id="mTotal" class="text-xl font-bold">0</div>
+            </div>
+            <div class="p-3 bg-gray-50 dark:bg-slate-700 rounded">
+              <div class="text-xs text-gray-500">Leads confirmados</div>
+              <div id="mConfirmed" class="text-xl font-bold">0</div>
+            </div>
+            <div class="p-3 bg-gray-50 dark:bg-slate-700 rounded">
+              <div class="text-xs text-gray-500">Taxa média</div>
+              <div id="mAvg" class="text-xl font-bold">—%</div>
+            </div>
+            <div class="p-3 bg-gray-50 dark:bg-slate-700 rounded">
+              <div class="text-xs text-gray-500">Treinamentos</div>
+              <div id="mTrains" class="text-xl font-bold">0</div>
+            </div>
+          </div>
+
+          <div class="mt-4 flex gap-2">
+            <button id="btnExport" class="flex-1 px-3 py-2 rounded border">Exportar CSV</button>
+            <button id="btnClear" class="flex-1 px-3 py-2 rounded border text-red-600">Limpar</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- HISTORY + CHARTS -->
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 p-4 bg-white dark:bg-slate-800 rounded-xl shadow card-border">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-semibold">Histórico de Previsões</h3>
+            <div class="text-sm text-gray-500">Clique para rotular (Lead / Não lead) — isso treina o modelo</div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full table-auto text-sm">
+              <thead class="text-left text-gray-500">
+                <tr><th class="p-2">#</th><th>Paciente</th><th>Colab</th><th>Prob.</th><th>Label</th><th>Data</th><th>Ações</th></tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <aside class="p-4 bg-white dark:bg-slate-800 rounded-xl shadow card-border">
+          <h3 class="font-semibold mb-3">Gráficos (Atualizam automaticamente)</h3>
+          <div class="mb-4">
+            <canvas id="chartProb" width="400" height="200"></canvas>
+          </div>
+          <div>
+            <canvas id="chartByCollab" width="400" height="200"></canvas>
+          </div>
+        </aside>
+      </section>
+
+    </main>
+  </div>
+
+<script>
+/* ===========================
+   STORAGE KEYS & HELPERS
+   =========================== */
+const STORAGE = {
+  HISTORY: 'crm_predict_history_v1',
+  MODEL: 'crm_predict_model_v1',
+  METADATA: 'crm_predict_meta_v1'
+};
+
+function loadHistory(){ try{ return JSON.parse(localStorage.getItem(STORAGE.HISTORY) || '[]'); }catch{ return []; } }
+function saveHistory(h){ localStorage.setItem(STORAGE.HISTORY, JSON.stringify(h)); }
+function loadModel(){ try{ return JSON.parse(localStorage.getItem(STORAGE.MODEL) || null); }catch{ return null; } }
+function saveModel(m){ localStorage.setItem(STORAGE.MODEL, JSON.stringify(m)); }
+function loadMeta(){ try{ return JSON.parse(localStorage.getItem(STORAGE.METADATA) || '{}'); }catch{ return {}; } }
+function saveMeta(m){ localStorage.setItem(STORAGE.METADATA, JSON.stringify(m)); }
+
+function uid(){ return 'id-'+Math.random().toString(36).slice(2,9); }
+function nowISO(){ return new Date().toISOString(); }
+
+/* ===========================
+   SIMPLE LOGISTIC MODEL (JS)
+   - features: duration (sec), responseTime (hours), hasEmail (0/1), interest (0-5)
+   - model: logistic(sigmoid(w0 + w1*x1 + ...))
+   - training: gradient descent on cross-entropy
+   This is intentionally small and explainable, suitable for demo and auto-training.
+   =========================== */
+
+const DEFAULT_MODEL = { weights: [0,0,0,0,0], // [bias, w_duration, w_response, w_email, w_interest]
+  lr: 0.01, trained: 0 };
+
+function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+
+function featuresFrom(entry) {
+  // normalize / scale: duration in sec -> minutes; responseTime hours; interest 0-5; hasEmail 0/1
+  return [
+    1, // bias
+    (entry.duration ? entry.duration/60 : 0), // minutes
+    (entry.responseTime || 0), // hours
+    (entry.hasEmail ? 1 : 0),
+    (entry.interest || 0)
+  ];
+}
+
+function predictProb(entry, model = null){
+  model = model || loadModel() || DEFAULT_MODEL;
+  const feats = featuresFrom(entry);
+  let z = 0;
+  for(let i=0;i<model.weights.length;i++) z += (model.weights[i]||0) * (feats[i]||0);
+  return Math.min(0.9999, Math.max(0.0001, sigmoid(z)));
+}
+
+/* gradient descent training */
+function trainModelOnDataset(dataset, opts = { epochs: 200, lr: 0.05 }) {
+  // dataset: [{ duration, responseTime, hasEmail, interest, label (1/0) }]
+  const m = loadModel() || DEFAULT_MODEL;
+  const weights = m.weights.slice();
+  const lr = opts.lr || m.lr || 0.05;
+  const epochs = opts.epochs || 200;
+
+  // simple mini-batch gradient descent (batch = full)
+  for(let e=0;e<epochs;e++){
+    const grads = new Array(weights.length).fill(0);
+    for(const d of dataset){
+      const x = featuresFrom(d);
+      let z = 0;
+      for(let i=0;i<weights.length;i++) z += weights[i] * x[i];
+      const pred = sigmoid(z);
+      const err = pred - (d.label?1:0); // derivative of cross-entropy
+      for(let i=0;i<weights.length;i++) grads[i] += err * x[i];
+    }
+    // update
+    for(let i=0;i<weights.length;i++){
+      weights[i] -= lr * (grads[i]/dataset.length);
+    }
+  }
+
+  const newModel = { weights, lr, trained: (m.trained||0)+1, updated_at: nowISO() };
+  saveModel(newModel);
+  // metadata
+  const meta = loadMeta(); meta.last_trained = newModel.updated_at; meta.trains = (meta.trains||0)+1; saveMeta(meta);
+  return newModel;
+}
+
+/* ===========================
+   APPLICATION LOGIC
+   =========================== */
+
+const collaborators = ['Ana','Carla','Rafael','Default']; // initial list (can be extended)
+const el = id => document.getElementById(id);
+
+// populate collaborators select(s)
+function populateCollabs(){
+  const sel = el('inCollab');
+  sel.innerHTML = '';
+  collaborators.forEach(c => {
+    const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o);
+  });
+}
+populateCollabs();
+
+/* UI elements */
+const outProb = el('predProb');
+const outLabel = el('predLabel');
+const outAction = el('predAction');
+const outBar = el('predBar');
+const outMTotal = el('mTotal');
+const outMConfirmed = el('mConfirmed');
+const outMAvg = el('mAvg');
+const outMTrains = el('mTrains');
+
+let chartProb = null, chartByCollab = null;
+
+/* Perform prediction and show */
+function classifyAndShow(){
+  const entry = {
+    name: el('inName').value.trim(),
+    phone: el('inPhone').value.trim(),
+    duration: Number(el('inDuration').value) || 0,
+    responseTime: Number(el('inResponseTime').value) || 9999,
+    hasEmail: Number(el('inHasEmail').value) ? 1 : 0,
+    interest: Number(el('inInterest').value) || 0,
+    colaborador: el('inCollab').value || 'Default'
+  };
+  const model = loadModel() || DEFAULT_MODEL;
+  const prob = Math.round(predictProb(entry, model)*10000)/100; // two decimals
+  outProb.textContent = `${prob}%`;
+  outBar.style.width = `${prob}%`;
+  let label = 'Frio'; let action = 'Aguardar';
+  if (prob >= 70){ label = '🔥 Quente'; action = 'Contato imediato (WhatsApp/ligação)'; }
+  else if (prob >= 40){ label = '☀️ Morno'; action = 'Follow-up em 24h'; }
+  else { label = '❄️ Frio'; action = 'Nutrir com conteúdo'; }
+  outLabel.textContent = label;
+  outAction.textContent = action;
+
+  // store current preview entry for 'add to history'
+  window._lastPreview = { ...entry, prob, label, action, created_at: nowISO() };
+}
+
+/* Add history entry (prediction) */
+function addHistory(record){
+  const hist = loadHistory();
+  hist.unshift(record); // newest first
+  saveHistory(hist);
+  // if too many keep last 1000
+  if(hist.length > 2000){ hist.splice(2000); saveHistory(hist); }
+  renderAll();
+}
+
+/* Render history & metrics & charts */
+function renderAll(){
+  const hist = loadHistory();
+  // history table
+  const tbody = el('historyBody'); tbody.innerHTML = '';
+  hist.forEach((h, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="p-2 align-top">${hist.length - idx}</td>
+      <td class="p-2 align-top">${h.name||h.paciente||'—'}</td>
+      <td class="p-2 align-top">${h.colaborador||'—'}</td>
+      <td class="p-2 align-top">${(h.prob||0).toFixed ? (h.prob).toFixed(2)+'%' : (h.prob||'—')}</td>
+      <td class="p-2 align-top">${h.label === undefined ? '—' : (h.label?'<span class="text-green-700">Lead</span>':'<span class="text-red-600">Não lead</span>')}</td>
+      <td class="p-2 align-top">${new Date(h.created_at).toLocaleString()}</td>
+      <td class="p-2 align-top">
+        <button class="px-2 py-1 mr-1 text-xs border btn-mark" data-id="${h.id}" data-val="1">Lead</button>
+        <button class="px-2 py-1 mr-1 text-xs border btn-mark" data-id="${h.id}" data-val="0">Não</button>
+        <button class="px-2 py-1 text-xs border btn-del" data-id="${h.id}">Excluir</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // wire actions
+  document.querySelectorAll('.btn-mark').forEach(b=>{
+    b.onclick = () => {
+      const id = b.dataset.id, val = b.dataset.val === '1' ? 1 : 0;
+      labelHistory(id, val);
+    };
+  });
+  document.querySelectorAll('.btn-del').forEach(b=>{
+    b.onclick = () => {
+      const id = b.dataset.id;
+      deleteHistory(id);
+    };
+  });
+
+  // metrics
+  outMTotal.textContent = hist.length;
+  const confirmed = hist.filter(h => h.label === 1).length;
+  outMConfirmed.textContent = confirmed;
+  const avg = hist.length ? (hist.reduce((s,h)=> s + (h.prob||0), 0) / hist.length) : 0;
+  outMAvg.textContent = hist.length ? Math.round(avg*100)/100 + '%' : '—';
+  const meta = loadMeta();
+  outMTrains.textContent = meta.trains || 0;
+
+  // charts
+  updateCharts(hist);
+}
+
+/* label a history item as real lead (1) or not (0) => triggers training */
+function labelHistory(id, label){
+  const hist = loadHistory();
+  const idx = hist.findIndex(h=>h.id===id);
+  if(idx<0) return;
+  hist[idx].label = label ? 1 : 0;
+  hist[idx].labeled_at = nowISO();
+  saveHistory(hist);
+  toast('Registro rotulado. Treinando modelo...');
+  // automatic training on labeled data
+  autoTrain();
+  renderAll();
+}
+
+function deleteHistory(id){
+  let hist = loadHistory();
+  hist = hist.filter(h=>h.id!==id);
+  saveHistory(hist);
+  renderAll();
+}
+
+/* Build training dataset from history with labels */
+function buildDatasetFromHistory(){
+  const hist = loadHistory();
+  const ds = hist.filter(h => typeof h.label === 'number').map(h => ({
+    duration: h.duration,
+    responseTime: h.responseTime,
+    hasEmail: h.hasEmail,
+    interest: h.interest,
+    label: h.label
+  }));
+  return ds;
+}
+
+/* Automatic training: if at least N labeled samples, train */
+function autoTrain(){
+  const ds = buildDatasetFromHistory();
+  if(ds.length < 6){ toast('Mais exemplos rotulados necessários para treinar (mínimo 6).'); return null; }
+  const model = trainModelOnDataset(ds, { epochs: 300, lr: 0.05 });
+  toast('Treinamento concluído (modelo atualizado).');
+  renderAll();
+  return model;
+}
+
+/* Persistence utility: export CSV */
+function exportCSV(){
+  const hist = loadHistory();
+  if(hist.length===0){ toast('Nenhum registro para exportar'); return; }
+  const rows = [['id','name','colaborador','duration','responseTime','hasEmail','interest','prob','label','created_at','labeled_at']];
+  hist.forEach(h => rows.push([
+    h.id,h.name||h.paciente,h.colaborador,h.duration||'',h.responseTime||'',h.hasEmail||'',h.interest||'',h.prob||'', h.label===undefined?'':h.label, h.created_at, h.labeled_at||''
+  ]));
+  const csv = rows.map(r => r.map(c => `"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'predict_history.csv'; a.click(); URL.revokeObjectURL(url);
+  toast('CSV gerado');
+}
+
+/* Clear all data */
+function clearAll(){
+  if(!confirm('Limpar todo histórico e modelo?')) return;
+  localStorage.removeItem(STORAGE.HISTORY);
+  localStorage.removeItem(STORAGE.MODEL);
+  localStorage.removeItem(STORAGE.METADATA);
+  renderAll();
+  toast('Dados limpos');
+}
+
+/* Charts update */
+function updateCharts(hist){
+  // chartProb: last 25 probs
+  const last = hist.slice(0,25).reverse();
+  const labels = last.map(h => (h.name||h.paciente||'—').slice(0,12) + (h.colaborador? ' • ' + h.colaborador : ''));
+  const dataProb = last.map(h => h.prob || 0);
+  const ctxProb = document.getElementById('chartProb').getContext('2d');
+  if(chartProb) chartProb.destroy();
+  chartProb = new Chart(ctxProb, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Probabilidade (%)', data: dataProb, borderColor: '#005BFF', backgroundColor: '#005BFF10', tension: 0.3, fill:true }] },
+    options: { responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, max:100 } } }
+  });
+
+  // chartByCollab
+  const byCollab = {};
+  hist.forEach(h => { const c = h.colaborador || '—'; byCollab[c] = (byCollab[c]||0) + (h.label === 1 ? 1 : 0);});
+  const ctxColl = document.getElementById('chartByCollab').getContext('2d');
+  if(chartByCollab) chartByCollab.destroy();
+  chartByCollab = new Chart(ctxColl, {
+    type:'bar',
+    data: { labels: Object.keys(byCollab), datasets: [{ label:'Leads confirmados', data: Object.values(byCollab), backgroundColor:'#FF6B00' }] },
+    options: { responsive:true, plugins:{legend:{display:false}} }
+  });
+}
+
+/* small toast */
+function toast(msg){ const t = document.createElement('div'); t.textContent = msg; t.className = 'fixed bottom-6 right-6 bg-black text-white px-4 py-2 rounded shadow z-50'; document.body.appendChild(t); setTimeout(()=> t.remove(), 2000); }
+
+/* ===========================
+   BOOTSTRAP & EVENTS
+   =========================== */
+
+el('btnPredict').addEventListener('click', ()=>{
+  classifyAndShow();
+});
+
+el('btnAddHistory').addEventListener('click', ()=>{
+  if(!window._lastPreview){ toast('Gere uma previsão antes.'); return; }
+  const h = {...window._lastPreview, id: uid() };
+  addHistory(h);
+  toast('Previsão adicionada ao histórico.');
+});
+
+el('btnSaveLead').addEventListener('click', ()=>{
+  // save as labeled real lead (label 1)
+  classifyAndShow();
+  if(!window._lastPreview){ toast('Gere previsão primeiro.'); return; }
+  const h = {...window._lastPreview, id: uid(), label: 1, labeled_at: nowISO()};
+  addHistory(h);
+  toast('Salvo e rotulado como lead. Treinando...');
+  autoTrain();
+});
+
+el('btnExport').addEventListener('click', exportCSV);
+el('btnClear').addEventListener('click', clearAll);
+
+/* Theme toggle */
+const root = document.documentElement;
+const themeBtn = el('btnTheme');
+themeBtn.addEventListener('click', ()=>{
+  root.classList.toggle('dark');
+  const isDark = root.classList.contains('dark');
+  el('themeEmoji').textContent = isDark ? '☀️' : '🌙';
+  el('themeLabel').textContent = isDark ? 'Modo Claro' : 'Modo Escuro';
+  localStorage.setItem('crm-theme', isDark ? 'dark' : 'light');
+});
+(function initTheme(){
+  const s = localStorage.getItem('crm-theme');
+  if(s === 'dark'){ root.classList.add('dark'); el('themeEmoji').textContent='☀️'; el('themeLabel').textContent='Modo Claro'; }
+})();
+
+/* load initial model if none */
+if(!loadModel()) saveModel(DEFAULT_MODEL);
+
+/* initialize collabs (also extended from stored history if exists) */
+(function initCollabsFromHistory(){
+  const hist = loadHistory();
+  const seen = new Set(collaborators);
+  hist.forEach(h => { if(h.colaborador) seen.add(h.colaborador); });
+  // sync collaborators
+  const arr = Array.from(seen);
+  while(collaborators.length) collaborators.pop();
+  arr.forEach(x=>collaborators.push(x));
+  populateCollabs();
+})();
+
+/* initial render */
+renderAll();
+
+/* ensure charts are created on load */
+updateCharts(loadHistory());
+
+</script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pt-BR" class="light">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CRM — Inteligência Preditiva</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand_blue: "#005BFF",
+            brand_orange: "#FF6B00",
+            card_border: "rgba(0,0,0,0.08)"
+          },
+          boxShadow: {
+            smooth: "0 6px 18px rgba(0,0,0,0.08)",
+            smooth_dark: "0 6px 18px rgba(0,0,0,0.28)"
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="antialiased bg-gray-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition">
+
+  <div class="flex min-h-screen">
+
+    <!-- SIDEBAR -->
+    <aside class="hidden md:flex flex-col w-64 bg-white dark:bg-slate-800 shadow-xl p-6 gap-6 fixed inset-y-0">
+
+      <div class="flex items-center gap-3">
+        <div class="h-12 w-12 rounded-xl bg-brand_blue text-white flex items-center justify-center text-xl font-bold shadow-md">
+          SR
+        </div>
+        <div>
+          <h1 class="text-lg font-bold">CRM São Rafael</h1>
+          <p class="text-sm text-gray-500 dark:text-slate-400 -mt-1">Inteligência Avançada</p>
+        </div>
+      </div>
+
+      <nav class="flex flex-col gap-2 flex-1">
+          <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">Menu</a>
+          <a href="./Alertas.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">Alertas</a>
+          <a href="./preditivo.html" class="px-4 py-2 rounded-lg bg-brand_blue text-white font-medium">IA Pacientes</a>
+          <a href="./lead.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">Leads</a>
+    </nav>
+
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 md:ml-64 p-10">
+
+      <!-- HEADER -->
+      <div class="flex items-center justify-between mb-10">
+        <div>
+          <h1 class="text-4xl font-extrabold tracking-tight">🤖 Inteligência Preditiva</h1>
+          <p class="text-gray-500 dark:text-slate-400 mt-1 text-sm">
+            Insights automáticos para otimizar suas decisões e priorizar ações.
+          </p>
+        </div>
+
+        <!-- BOTÃO DARK MODE -->
+        <button id="toggleTheme"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white dark:bg-white dark:text-slate-800 shadow hover:scale-[1.02] transition">
+          <span id="themeIcon">🌙</span>
+        </button>
+      </div>
+
+      <!-- SELECTOR DE PACIENTE -->
+      <div class="mb-6">
+        <label class="font-semibold">Paciente</label>
+        <select id="selectPaciente" class="w-full p-4 rounded-lg border bg-white dark:bg-slate-800 dark:border-slate-700 mt-2">
+        </select>
+      </div>
+
+      <!-- BOTÃO GERAR -->
+      <button id="btnGerar"
+        class="mb-10 px-8 py-4 rounded-xl bg-brand_blue text-white font-semibold text-lg shadow-lg hover:scale-[1.02] transition flex items-center gap-2">
+        <span id="loading" class="hidden animate-spin border-2 border-white border-t-transparent rounded-full h-5 w-5"></span>
+        🔮 Gerar Previsão
+      </button>
+
+      <!-- GRID -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- CARD PACIENTE -->
+        <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow border border-card_border dark:border-slate-700 hover:shadow-smooth transition col-span-1 lg:col-span-3">
+          <h2 class="text-lg font-bold mb-2">📌 Dados do Paciente</h2>
+          <p id="pNome" class="text-gray-700 dark:text-slate-300 text-lg font-medium">—</p>
+          <p id="pProcedimento" class="text-gray-600 dark:text-slate-400 text-sm mt-1">—</p>
+          <p id="pRetorno" class="text-gray-600 dark:text-slate-400 text-sm">—</p>
+        </div>
+
+        <!-- CARD LEADS -->
+        <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow border border-card_border dark:border-slate-700 hover:shadow-smooth transition">
+          <h2 class="text-lg font-bold mb-2">Temperatura dos Leads</h2>
+          <p class="text-gray-500 dark:text-slate-400 text-sm mb-4">
+            Determinação automática baseada em engajamento e histórico.
+          </p>
+
+          <div id="boxTemperatura" class="text-3xl font-bold text-brand_blue">—</div>
+
+          <div class="mt-4 h-2 w-full bg-gray-200 dark:bg-slate-700 rounded-full">
+            <div id="barTemp" class="h-full w-0 bg-brand_blue rounded-full transition-all"></div>
+          </div>
+        </div>
+
+        <!-- CARD RISCO -->
+        <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow border border-card_border dark:border-slate-700 hover:shadow-smooth transition">
+          <h2 class="text-lg font-bold mb-2">Risco de Ausência</h2>
+          <p class="text-gray-500 dark:text-slate-400 text-sm mb-4">
+            Modelo estatístico baseado no tempo de resposta e padrão comportamental.
+          </p>
+
+          <div id="boxRisco" class="text-3xl font-bold text-brand_orange">—</div>
+
+          <div class="mt-4 h-2 w-full bg-gray-200 dark:bg-slate-700 rounded-full">
+            <div id="barRisco" class="h-full w-0 bg-brand_orange rounded-full transition-all"></div>
+          </div>
+        </div>
+
+        <!-- CARD FOLLOW UP -->
+        <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow border border-card_border dark:border-slate-700 hover:shadow-smooth transition">
+          <h2 class="text-lg font-bold mb-2">Sugestão de Follow-up</h2>
+          <p class="text-gray-500 dark:text-slate-400 text-sm mb-4">
+            A IA escolhe automaticamente a melhor ação para o momento.
+          </p>
+
+          <div id="boxFollow" class="text-xl font-medium">—</div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- SCRIPT -->
+  <script>
+
+    // -------------------------
+    // BASE DE PACIENTES (simulado por enquanto, pode puxar da aba Alertas)
+    // -------------------------
+    const pacientesDB = [
+      { id: 1, nome: "Ana Oliveira", procedimento: "Rinoplastia", retorno: "2026-03-22", faltas: 2, resposta: 14 },
+      { id: 2, nome: "João Silva", procedimento: "Lipo HD", retorno: "2026-02-18", faltas: 0, resposta: 4 },
+      { id: 3, nome: "Mariana Rocha", procedimento: "Blefaroplastia", retorno: "2026-05-10", faltas: 1, resposta: 9 }
+    ];
+
+    const select = document.getElementById("selectPaciente");
+    pacientesDB.forEach(p => {
+      select.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
+    });
+
+
+
+    // -------------------------
+    // API PREDITIVA PROFISSIONAL
+    // -------------------------
+    function apiPreditivaPaciente(paciente) {
+
+      // Temperatura
+      let temp = { label: "☀️ Morno", level: 60 };
+      if (paciente.resposta <= 5) temp = { label: "🔥 Quente", level: 100 };
+      if (paciente.resposta > 10) temp = { label: "❄️ Frio", level: 25 };
+
+      // Risco de ausência
+      let risco = { label: "🟢 Baixo", level: 20 };
+      if (paciente.faltas === 1) risco = { label: "🟡 Moderado", level: 50 };
+      if (paciente.faltas >= 2) risco = { label: "⚠️ Alto", level: 100 };
+
+      // Follow-up
+      let follow = "Aguardar resposta por 24h";
+      if (temp.label.includes("Quente")) follow = "Enviar WhatsApp imediatamente";
+      if (risco.label.includes("Alto")) follow = "Ligar dentro de 2 horas";
+      if (temp.label.includes("Frio")) follow = "Reativar com mensagem curta";
+
+      return { temp, risco, follow };
+    }
+
+
+
+    // -------------------------
+    // BOTÃO GERAR PREVISÃO
+    // -------------------------
+    const btn = document.getElementById("btnGerar");
+    const loading = document.getElementById("loading");
+
+    btn.onclick = () => {
+
+      loading.classList.remove("hidden");
+
+      setTimeout(() => {
+        loading.classList.add("hidden");
+
+        const id = Number(select.value);
+        const paciente = pacientesDB.find(p => p.id === id);
+
+        // exibe dados do paciente
+        document.getElementById("pNome").textContent = "Nome: " + paciente.nome;
+        document.getElementById("pProcedimento").textContent = "Procedimento: " + paciente.procedimento;
+        document.getElementById("pRetorno").textContent = "Retorno Cirúrgico: " + paciente.retorno;
+
+        const r = apiPreditivaPaciente(paciente);
+
+        document.getElementById("boxTemperatura").textContent = r.temp.label;
+        document.getElementById("barTemp").style.width = r.temp.level + "%";
+
+        document.getElementById("boxRisco").textContent = r.risco.label;
+        document.getElementById("barRisco").style.width = r.risco.level + "%";
+
+        document.getElementById("boxFollow").textContent = r.follow;
+
+      }, 800);
+    };
+
+
+    // -------------------------
+    // DARK MODE
+    // -------------------------
+    const htmlEl = document.documentElement;
+    const btnTheme = document.getElementById("toggleTheme");
+    const icon = document.getElementById("themeIcon");
+    const text = document.getElementById("themeText");
+
+    btnTheme.onclick = () => {
+      htmlEl.classList.toggle("dark");
+
+      if (htmlEl.classList.contains("dark")) {
+        icon.textContent = "☀️";
+        text.textContent = "Modo Claro";
+      } else {
+        icon.textContent = "🌙";
+        text.textContent = "Modo Escuro";
+      }
+    };
+  </script>
+
+</body>
+
+</html>

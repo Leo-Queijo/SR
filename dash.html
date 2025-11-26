@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CRM — Dashboard de Alertas</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- ChartJS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand_orange: "#FF6B00",
+            brand_blue: "#005BFF"
+          },
+          boxShadow: {
+            card: "0 8px 20px rgba(0,0,0,0.12)"
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="antialiased bg-gray-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+
+  <div class="flex min-h-screen">
+
+    <!-- SIDEBAR -->
+    <aside class="hidden md:flex flex-col w-64 bg-white dark:bg-slate-800 shadow-xl p-6 gap-6 fixed md:static inset-y-0 z-50">
+
+      <div class="flex items-center gap-3">
+        <div class="h-12 w-12 rounded-xl bg-brand_blue text-white flex items-center justify-center text-xl font-bold shadow-md">SR</div>
+        <div>
+          <h1 class="text-lg font-bold">CRM São Rafael</h1>
+          <p class="text-sm text-gray-500 dark:text-slate-400 -mt-1">360º — Dashboard</p>
+        </div>
+      </div>
+
+      <nav class="flex flex-col gap-2 flex-1">
+          <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">Menu</a>
+          <a href="./Alertas.html" class="px-4 py-2 rounded-lg bg-brand_blue text-white font-medium">Alertas</a>
+          <a href="./preditivo.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">IA Pacientes</a>
+          <a href="./lead.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">Leads</a>
+      </nav>
+
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 md:ml-64 p-6">
+
+      <!-- HEADER -->
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
+        <div>
+          <h1 class="text-4xl font-extrabold tracking-tight">📊 Dashboard de Alertas</h1>
+          <p class="text-gray-500 dark:text-slate-400 mt-1">
+            Monitoramento avançado de alertas, urgência e tendências.
+          </p>
+        </div>
+
+        <a href="./alertas.html"
+          class="mt-4 md:mt-0 px-5 py-3 rounded-xl bg-brand_blue text-white shadow-lg hover:scale-[1.02] transition">
+          ← Voltar para Alertas
+        </a>
+      </div>
+
+      <!-- GRID PRINCIPAL -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- CARD 1 -->
+        <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-card border dark:border-slate-700">
+          <h2 class="text-lg font-semibold mb-3">Alertas por Tipo</h2>
+          <canvas id="chartTipos" class="mt-4"></canvas>
+        </div>
+
+        <!-- CARD 2 -->
+        <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-card border dark:border-slate-700">
+          <h2 class="text-lg font-semibold mb-3">Alertas por Dia</h2>
+          <canvas id="chartDias" class="mt-4"></canvas>
+        </div>
+
+        <!-- CARD 3 -->
+        <div class="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-card border dark:border-slate-700 lg:col-span-2">
+          <h2 class="text-lg font-semibold mb-3">Distribuição por Urgência</h2>
+          <canvas id="chartUrgencia" class="mt-4"></canvas>
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- SCRIPT DOS GRÁFICOS -->
+  <script>
+    // SIMULAÇÃO DE DADOS
+    const dados = {
+      tipos: { "Retorno Cirúrgico": 18, "Fim da Garantia": 11, "Exames Pendentes": 7, "Documentação": 4 },
+      dias: {
+        "2025-01-20": 5,
+        "2025-01-21": 8,
+        "2025-01-22": 3,
+        "2025-01-23": 10,
+        "2025-01-24": 6
+      },
+      urgencia: { urgente: 12, normal: 28 }
+    };
+
+    // COR PADRÃO DO TEMA
+    const blue = "#005BFF";
+    const orange = "#FF6B00";
+
+    // ===== GRÁFICO 1 — TIPOS =====
+    new Chart(document.getElementById("chartTipos"), {
+      type: "bar",
+      data: {
+        labels: Object.keys(dados.tipos),
+        datasets: [{
+          label: "Quantidade",
+          data: Object.values(dados.tipos),
+          backgroundColor: [blue, orange, "#7C3AED", "#14B8A6"],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { font: { size: 13 } } },
+          x: { ticks: { font: { size: 13 } } }
+        }
+      }
+    });
+
+    // ===== GRÁFICO 2 — POR DIA =====
+    new Chart(document.getElementById("chartDias"), {
+      type: "line",
+      data: {
+        labels: Object.keys(dados.dias),
+        datasets: [{
+          label: "Alertas",
+          data: Object.values(dados.dias),
+          borderWidth: 4,
+          borderColor: blue,
+          backgroundColor: blue + "20",
+          tension: 0.4,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    // ===== GRÁFICO 3 — URGÊNCIA =====
+    new Chart(document.getElementById("chartUrgencia"), {
+      type: "doughnut",
+      data: {
+        labels: ["Urgentes", "Normais"],
+        datasets: [{
+          data: [dados.urgencia.urgente, dados.urgencia.normal],
+          backgroundColor: [orange, blue],
+          hoverOffset: 10
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: "55%"
+      }
+    });
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CRM Hospitalar 360º — Alertas Inteligentes</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand_orange: "#FF6B00",
+            brand_blue: "#005BFF"
+          },
+          borderRadius: { 'card': '12px' }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.18); border-radius: 6px; }
+  </style>
+</head>
+
+<body class="antialiased">
+  <div id="app" class="min-h-screen transition-colors duration-200 bg-gray-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+
+    <div class="flex min-h-screen">
+
+      <!-- SIDEBAR -->
+      <aside class="hidden md:flex flex-col w-64 bg-white dark:bg-slate-800 shadow-xl p-6 gap-6 fixed md:static inset-y-0 z-50">
+
+        <!-- LOGO -->
+        <div class="flex items-center gap-3">
+          <div class="h-12 w-12 rounded-xl bg-brand_blue text-white flex items-center justify-center text-xl font-bold shadow-md">SR</div>
+          <div>
+            <h1 class="text-lg font-bold text-gray-900 dark:text-slate-100">CRM São Rafael</h1>
+            <p class="text-sm text-gray-500 dark:text-slate-400 -mt-1">Alertas</p>
+          </div>
+        </div>
+
+        <nav class="flex flex-col gap-2 flex-1">
+          <a href="./index.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">Menu</a>
+          <a href="./Alertas.html" class="px-4 py-2 rounded-lg bg-brand_blue text-white font-medium">Alertas</a>
+          <a href="./preditivo.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">IA Pacientes</a>
+          <a href="./lead.html" class="px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">Leads</a>
+        </nav>
+
+        <!-- STATUS -->
+        <div class="bg-gray-50 dark:bg-slate-700 p-4 rounded-xl border border-gray-200 dark:border-slate-600 shadow-sm mt-auto">
+          <h3 class="text-sm font-semibold mb-3 text-gray-700 dark:text-slate-100">Status de Alertas</h3>
+          <div id="sidebar-alert-summary" class="grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-xl bg-white dark:bg-slate-800 border shadow text-center">
+              <div class="text-brand_blue text-2xl font-bold" id="sidebar-alerts-count">0</div>
+              <p class="text-xs text-gray-500 dark:text-slate-400">Pendentes</p>
+            </div>
+            <div class="p-3 rounded-xl bg-white dark:bg-slate-800 border shadow text-center">
+              <div class="text-brand_orange text-2xl font-bold" id="sidebar-urgent-count">0</div>
+              <p class="text-xs text-gray-500 dark:text-slate-400">Urgentes</p>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- MAIN -->
+      <main class="flex-1 md:ml-8 p-6">
+
+        <!-- TOPBAR -->
+        <div class="flex flex-col md:flex-row justify-between items-center gap-3 mb-6">
+          <div id="searchWrap" class="flex items-center bg-white dark:bg-slate-800 shadow-md w-full md:w-[650px] px-5 py-3 rounded-2xl border border-gray-200 dark:border-slate-700">
+            <svg width="20" height="20" viewBox="0 0 24 24" class="text-slate-400 dark:text-slate-300" fill="none" stroke="currentColor">
+              <circle cx="11" cy="11" r="6" stroke-width="1.8"/>
+              <path d="M21 21l-4.35-4.35" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <input id="searchInput" type="text" placeholder="Buscar paciente, tipo, colaborador..." class="ml-3 w-full outline-none bg-transparent text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500" />
+            <button id="clearSearch" class="ml-3 text-sm text-slate-600 dark:text-slate-300 hidden">Limpar</button>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button id="newPatient" class="px-5 py-3 rounded-xl bg-brand_blue text-white font-medium shadow-lg hover:bg-[#0046e6]">+ Novo Paciente</button>
+            <button id="btn-dashboard" class="px-4 py-2 rounded-lg bg-white dark:bg-slate-700 border shadow">📊 Dashboard</button>
+
+            <button id="themeToggle" aria-label="Alternar tema" class="p-2 rounded-md bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 shadow hover:scale-105 transition">
+              <svg id="themeIcon" class="w-5 h-5 text-slate-700 dark:text-slate-200" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- HEADER CONTROLS -->
+        <div class="flex items-center justify-between mb-4 gap-3">
+          <div class="flex gap-3 items-center">
+            <button id="btn-refresh" class="px-4 py-2 rounded-lg bg-white dark:bg-slate-700 border shadow">Atualizar (gerar agora)</button>
+
+            <select id="filter-collab" class="px-3 py-2 rounded-lg border dark:bg-slate-700">
+              <option value="">Todos os colaboradores</option>
+            </select>
+
+            <select id="filter-type" class="px-3 py-2 rounded-lg border dark:bg-slate-700">
+              <option value="">Todos os tipos</option>
+              <option value="Retorno">Retorno</option>
+              <option value="Garantia">Garantia</option>
+              <option value="Documentos">Documentos</option>
+              <option value="Exames">Exames</option>
+            </select>
+
+            <select id="filter-status" class="px-3 py-2 rounded-lg border dark:bg-slate-700">
+              <option value="">Todos os status</option>
+              <option value="pendente">Pendente</option>
+              <option value="resolvido">Resolvido</option>
+            </select>
+          </div>
+
+          <div class="flex gap-2">
+            <button id="exportCSV" class="px-3 py-2 rounded-lg bg-brand_orange text-white">Exportar CSV</button>
+            <button id="openCreate" class="px-3 py-2 rounded-lg border">Criar Alerta</button>
+          </div>
+        </div>
+
+        <!-- TOP METRICS + CHART -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+          <div class="p-4 bg-white dark:bg-slate-800 rounded-xl shadow border">
+            <div class="text-sm text-gray-500 dark:text-slate-400">Pendentes</div>
+            <div class="text-2xl font-bold" id="total-pendentes">0</div>
+            <div class="text-xs text-gray-400">Abertos</div>
+          </div>
+
+          <div class="p-4 bg-white dark:bg-slate-800 rounded-xl shadow border">
+            <div class="text-sm text-gray-500 dark:text-slate-400">Hoje</div>
+            <div class="text-2xl font-bold" id="total-hoje">0</div>
+            <div class="text-xs text-gray-400">Criados hoje</div>
+          </div>
+
+          <div class="p-4 bg-white dark:bg-slate-800 rounded-xl shadow border">
+            <div class="text-sm text-gray-500 dark:text-slate-400">Urgentes</div>
+            <div class="text-2xl font-bold text-brand_orange" id="total-urgentes">0</div>
+            <div class="text-xs text-gray-400">Prioridade alta</div>
+          </div>
+
+          <div class="p-4 bg-white dark:bg-slate-800 rounded-xl shadow border">
+            <div class="text-sm text-gray-500 dark:text-slate-400">Resolvidos</div>
+            <div class="text-2xl font-bold" id="total-resolvidos">0</div>
+            <div class="text-xs text-gray-400">Últimas 30 dias</div>
+          </div>
+        </div>
+
+        <!-- LAYOUT: Left list + Right charts/timeline -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <!-- LEFT: LISTA PRINCIPAL -->
+          <div class="lg:col-span-2 space-y-4">
+
+            <!-- Timeline quick (today/48h/week) -->
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow border">
+              <h3 class="font-semibold mb-2">Timeline de Vencimentos</h3>
+              <div id="timeline" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+            </div>
+
+            <!-- Alerts list -->
+            <div id="alerts-list" class="space-y-3"></div>
+
+          </div>
+
+          <!-- RIGHT: CHARTS + KPI -->
+          <aside class="space-y-4">
+
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow border">
+              <h3 class="font-semibold mb-3">Alertas por Tipo</h3>
+              <canvas id="chartTipos" class="w-full" width="400" height="240"></canvas>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow border">
+              <h3 class="font-semibold mb-3">Alertas por Colaborador</h3>
+              <canvas id="chartCollab" class="w-full" width="400" height="240"></canvas>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow border">
+              <h3 class="font-semibold mb-3">Urgência (Distribuição)</h3>
+              <canvas id="chartUrg" class="w-full" width="400" height="180"></canvas>
+            </div>
+
+          </aside>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL CREATE / EDIT -->
+  <div id="modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl w-full max-w-xl p-6 shadow-lg">
+      <h3 id="modalTitle" class="text-lg font-semibold mb-3">Criar Alerta</h3>
+      <div class="grid grid-cols-1 gap-3">
+        <input id="mPaciente" class="p-2 border rounded" placeholder="Nome do paciente" />
+        <input id="mColab" class="p-2 border rounded" placeholder="Colaborador responsável" />
+        <select id="mTipo" class="p-2 border rounded">
+          <option value="Retorno">Retorno</option>
+          <option value="Garantia">Garantia</option>
+          <option value="Documentos">Documentos</option>
+          <option value="Exames">Exames</option>
+          <option value="Outro">Outro</option>
+        </select>
+        <input id="mRefDate" type="date" class="p-2 border rounded" />
+        <textarea id="mNote" class="p-2 border rounded" placeholder="Observações / instruções"></textarea>
+
+        <div class="flex justify-end gap-2 mt-2">
+          <button id="modalCancel" class="px-4 py-2 rounded border">Cancelar</button>
+          <button id="modalSave" class="px-4 py-2 rounded bg-brand_blue text-white">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-6 right-6 hidden bg-slate-900 text-white px-4 py-2 rounded shadow z-50"></div>
+
+  <!-- SCRIPTS: Lógica de automação, UI, charts -->
+  <script>
+  /******************************
+   * STORAGE / MOCK DATA
+   ******************************/
+  const STORAGE_ALERTS = 'crm_alerts_v2';
+  const STORAGE_THEME = 'crm-theme';
+
+  // Mock patient base — substitute with real data later
+  const patients = [
+    { id: 1, name: "Mariana Silva", retorno: "2025-12-20", garantia: "2026-01-15", docs: false, exames: true, colaborador: "Ana" },
+    { id: 2, name: "João Pereira", retorno: "2026-01-10", garantia: "2025-12-02", docs: true, exames: false, colaborador: "Carla" },
+    { id: 3, name: "Pedro Santos", retorno: "2025-11-28", garantia: "2025-12-10", docs: false, exames: false, colaborador: "Carla" },
+    { id: 4, name: "Ana Costa", retorno: "2026-02-05", garantia: "2026-03-01", docs: true, exames: true, colaborador: "Rafael" },
+    { id: 5, name: "Lucas Almeida", retorno: addDays(new Date(), 5), garantia: addDays(new Date(), 28), docs: true, exames: true, colaborador: "Ana" }
+  ];
+
+  function addDays(d, days){
+    const nd = new Date(d);
+    nd.setDate(nd.getDate() + days);
+    return nd.toISOString().slice(0,10);
+  }
+
+  /* Helpers */
+  function loadAlerts() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_ALERTS) || '[]'); }
+    catch { return []; }
+  }
+  function saveAlerts(list) { localStorage.setItem(STORAGE_ALERTS, JSON.stringify(list)); }
+  function nowISO() { return new Date().toISOString(); }
+  function daysTo(dateStr) {
+    if (!dateStr) return null;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const d = new Date(dateStr); d.setHours(0,0,0,0);
+    return Math.ceil((d - today) / (1000*60*60*24));
+  }
+  function uid() { return 'id-'+Math.random().toString(36).slice(2,9); }
+  function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),2000); }
+
+  /******************************
+   * PRIORITY SCORE
+   ******************************/
+  function priorityScore(alert){
+    // higher = more urgent
+    // base score by days left (less days => higher)
+    let score = 0;
+    if (typeof alert.dias === 'number' && alert.dias !== null) score += Math.max(0, 60 - alert.dias) * 1.2;
+    if (alert.tipo === 'Retorno') score += 8;
+    if (alert.tipo === 'Garantia') score += 7;
+    if (alert.tipo === 'Documentos') score += 6;
+    if (alert.tipo === 'Exames') score += 6;
+    if (alert.urgente) score += 12;
+    if (alert.status === 'resolvido') score -= 100;
+    // add small randomness to break ties
+    score += (Math.random()*0.01);
+    return score;
+  }
+
+  /******************************
+   * GENERATE ALERTS AUTOMATICALLY
+   ******************************/
+  function generateAlertsFromPatients(){
+    const stored = loadAlerts();
+    const keys = new Set(stored.map(a=>a.key));
+    const now = nowISO();
+
+    patients.forEach(p=>{
+      // retorno => 60 dias
+      const diasRet = daysTo(p.retorno);
+      if (diasRet !== null && diasRet <= 60 && diasRet >= 0) {
+        const key = `${p.id}|retorno|${p.retorno}`;
+        if (!keys.has(key)) {
+          stored.push({
+            id: uid(), key, patientId: p.id, paciente: p.name, colaborador: p.colaborador,
+            tipo: 'Retorno', dias: diasRet, via: 'Sistema', urgente: diasRet <= 7, created_at: now, refDate: p.retorno, status: 'pendente', notes: []
+          });
+          keys.add(key);
+        }
+      }
+
+      // garantia => 30 dias
+      const diasGar = daysTo(p.garantia);
+      if (diasGar !== null && diasGar <= 30 && diasGar >= 0) {
+        const key = `${p.id}|garantia|${p.garantia}`;
+        if (!keys.has(key)) {
+          stored.push({
+            id: uid(), key, patientId: p.id, paciente: p.name, colaborador: p.colaborador,
+            tipo: 'Garantia', dias: diasGar, via: 'Sistema', urgente: diasGar <= 7, created_at: now, refDate: p.garantia, status: 'pendente', notes: []
+          });
+          keys.add(key);
+        }
+      }
+
+      // documentos pendentes
+      if (!p.docs) {
+        const key = `${p.id}|docs|none`;
+        if (!keys.has(key)) {
+          stored.push({
+            id: uid(), key, patientId: p.id, paciente: p.name, colaborador: p.colaborador,
+            tipo: 'Documentos', dias: null, via: 'Sistema', urgente: 1, created_at: now, refDate: null, status: 'pendente', notes: []
+          });
+          keys.add(key);
+        }
+      }
+
+      // exames pendentes
+      if (!p.exames) {
+        const key = `${p.id}|exames|none`;
+        if (!keys.has(key)) {
+          stored.push({
+            id: uid(), key, patientId: p.id, paciente: p.name, colaborador: p.colaborador,
+            tipo: 'Exames', dias: null, via: 'Sistema', urgente: 1, created_at: now, refDate: null, status: 'pendente', notes: []
+          });
+          keys.add(key);
+        }
+      }
+    });
+
+    saveAlerts(stored);
+    return stored;
+  }
+
+  /******************************
+   * CRUD ALERTS & ACTIONS
+   ******************************/
+  function createAlert(obj){
+    const alerts = loadAlerts();
+    obj.id = uid();
+    obj.key = obj.key || `${obj.patientId||'custom'}|${obj.tipo}|${obj.refDate||'none'}`;
+    obj.created_at = nowISO();
+    obj.status = obj.status || 'pendente';
+    obj.notes = obj.notes || [];
+    alerts.push(obj);
+    saveAlerts(alerts);
+    return obj;
+  }
+
+  function resolveAlert(id){
+    const alerts = loadAlerts();
+    const idx = alerts.findIndex(a=>a.id===id);
+    if(idx>=0){ alerts[idx].status='resolvido'; alerts[idx].resolved_at = nowISO(); saveAlerts(alerts); toast('Alerta marcado como resolvido'); }
+    renderAll(currentFilters.collab, currentFilters.type, currentFilters.status);
+  }
+
+  function transferAlert(id, newCollab){
+    const alerts = loadAlerts(); const a = alerts.find(x=>x.id===id);
+    if(a){ a.colaborador = newCollab; saveAlerts(alerts); toast('Colaborador alterado'); renderAll(currentFilters.collab, currentFilters.type, currentFilters.status); }
+  }
+
+  function addNoteToAlert(id, note){
+    const alerts = loadAlerts(); const a = alerts.find(x=>x.id===id);
+    if(a){ a.notes = a.notes || []; a.notes.push({id:uid(), text:note, at: nowISO()}); saveAlerts(alerts); toast('Comentário adicionado'); renderAll(currentFilters.collab, currentFilters.type, currentFilters.status); }
+  }
+
+  function postponeAlert(id, days){
+    const alerts = loadAlerts(); const a = alerts.find(x=>x.id===id);
+    if(a && a.refDate){
+      const d = new Date(a.refDate); d.setDate(d.getDate()+Number(days)); a.refDate = d.toISOString().slice(0,10); a.dias = daysTo(a.refDate); saveAlerts(alerts); toast('Alerta adiado'); renderAll(currentFilters.collab, currentFilters.type, currentFilters.status);
+    } else { toast('Não há data para adiar'); }
+  }
+
+  /******************************
+   * RENDER UI
+   ******************************/
+  let chartTipos, chartCollab, chartUrg;
+  const currentFilters = { collab:'', type:'', status:'' };
+
+  function el(html){ const t=document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
+
+  function renderAlertCard(a){
+    const urgClass = a.urgente ? 'border-brand_orange bg-[#fff7ed] dark:bg-[#4a2e00]/20' : 'bg-white dark:bg-slate-800';
+    const daysText = (typeof a.dias === 'number' && a.dias!==null) ? `${a.dias} dias` : (a.refDate ? a.refDate : '—');
+    const notesHtml = (a.notes||[]).slice(-2).map(n=>`<div class="text-xs text-gray-500 mt-1">• ${n.text}</div>`).join('');
+    const resolvedBadge = a.status==='resolvido' ? '<span class="text-xs px-2 py-1 rounded bg-green-100 text-green-700">Resolvido</span>' : '';
+
+    const node = el(`
+      <div class="p-4 rounded-xl shadow border ${urgClass}">
+        <div class="flex justify-between items-start gap-3">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-3">
+              <div class="text-sm text-slate-500 truncate">${a.colaborador || '—'}</div>
+              ${resolvedBadge}
+            </div>
+            <div class="font-semibold mt-2">${a.tipo} — ${a.paciente}</div>
+            <div class="text-xs text-slate-500 mt-1">${daysText} • ${new Date(a.created_at).toLocaleString()}</div>
+            ${notesHtml}
+          </div>
+
+          <div class="flex flex-col items-end gap-2">
+            <div class="text-xs text-gray-500">${a.via}</div>
+            <div class="flex gap-2">
+              <button class="px-2 py-1 text-xs border rounded btn-resolve" data-id="${a.id}">✔ Resolver</button>
+              <button class="px-2 py-1 text-xs border rounded btn-transfer" data-id="${a.id}">→ Transferir</button>
+              <button class="px-2 py-1 text-xs border rounded btn-note" data-id="${a.id}">✏ Nota</button>
+              <button class="px-2 py-1 text-xs border rounded btn-postpone" data-id="${a.id}">🕒 Adiar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+
+    // events
+    node.querySelector('.btn-resolve').addEventListener('click', ()=> resolveAlert(a.id));
+    node.querySelector('.btn-transfer').addEventListener('click', ()=> {
+      const newC = prompt('Novo colaborador:', a.colaborador || '');
+      if (newC) transferAlert(a.id, newC);
+    });
+    node.querySelector('.btn-note').addEventListener('click', ()=> {
+      const note = prompt('Comentário (visível internamente):');
+      if (note) addNoteToAlert(a.id, note);
+    });
+    node.querySelector('.btn-postpone').addEventListener('click', ()=> {
+      const days = prompt('Adiar quantos dias?', '7');
+      if (days && !isNaN(days)) postponeAlert(a.id, days);
+    });
+
+    return node;
+  }
+
+  function populateFilters(alerts){
+    const sel = document.getElementById('filter-collab');
+    const names = Array.from(new Set(alerts.map(a=>a.colaborador).filter(Boolean))).sort();
+    sel.innerHTML = '<option value="">Todos os colaboradores</option>';
+    names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+  }
+
+  function renderTimeline(alerts){
+    const today = [], next48 = [], week = [];
+    const now = new Date();
+    alerts.forEach(a=>{
+      if (!a.refDate) return;
+      const d = new Date(a.refDate); d.setHours(0,0,0,0);
+      const diff = daysTo(a.refDate);
+      if (diff === 0) today.push(a);
+      else if (diff > 0 && diff <= 2) next48.push(a);
+      else if (diff > 2 && diff <= 7) week.push(a);
+    });
+
+    const wrap = document.getElementById('timeline');
+    wrap.innerHTML = `
+      <div class="p-2 border rounded"><div class="text-sm font-semibold mb-2">Hoje (${today.length})</div>${today.map(a=>`<div class="text-sm mb-1">• ${a.paciente} — ${a.tipo} (${a.colaborador})</div>`).join('') || '<div class="text-xs text-gray-500">Nenhum</div>'}</div>
+      <div class="p-2 border rounded"><div class="text-sm font-semibold mb-2">48h (${next48.length})</div>${next48.map(a=>`<div class="text-sm mb-1">• ${a.paciente} — ${a.tipo} (${a.colaborador})</div>`).join('') || '<div class="text-xs text-gray-500">Nenhum</div>'}</div>
+      <div class="p-2 border rounded"><div class="text-sm font-semibold mb-2">Esta semana (${week.length})</div>${week.map(a=>`<div class="text-sm mb-1">• ${a.paciente} — ${a.tipo} (${a.colaborador})</div>`).join('') || '<div class="text-xs text-gray-500">Nenhum</div>'}</div>
+    `;
+  }
+
+  function updateMetrics(alerts) {
+    const totalPend = alerts.filter(a=>a.status==='pendente').length;
+    const totalHoje = alerts.filter(a=> new Date(a.created_at).toDateString() === new Date().toDateString()).length;
+    const totalUrg = alerts.filter(a=>a.urgente).length;
+    const totalRes = alerts.filter(a=>a.status==='resolvido' && new Date(a.resolved_at || 0) > new Date(Date.now() - 1000*60*60*24*30)).length;
+
+    document.getElementById('total-pendentes').textContent = totalPend;
+    document.getElementById('total-hoje').textContent = totalHoje;
+    document.getElementById('total-urgentes').textContent = totalUrg;
+    document.getElementById('total-resolvidos').textContent = totalRes;
+    document.getElementById('sidebar-alerts-count').textContent = totalPend;
+    document.getElementById('sidebar-urgent-count').textContent = totalUrg;
+  }
+
+  function renderCharts(alerts){
+    // types
+    const types = {};
+    const collab = {};
+    let urgent = 0, normal=0;
+    alerts.forEach(a=>{
+      types[a.tipo] = (types[a.tipo]||0)+1;
+      collab[a.colaborador] = (collab[a.colaborador]||0)+1;
+      if (a.urgente) urgent++; else normal++;
+    });
+
+    const ctxTipos = document.getElementById('chartTipos').getContext('2d');
+    const ctxCollab = document.getElementById('chartCollab').getContext('2d');
+    const ctxUrg = document.getElementById('chartUrg').getContext('2d');
+
+    if (chartTipos) chartTipos.destroy();
+    if (chartCollab) chartCollab.destroy();
+    if (chartUrg) chartUrg.destroy();
+
+    chartTipos = new Chart(ctxTipos, {
+      type:'doughnut',
+      data: { labels: Object.keys(types), datasets: [{ data: Object.values(types), backgroundColor: ['#005BFF','#FF6B00','#7C3AED','#F59E0B','#14B8A6'] }]},
+      options: { responsive:true, plugins:{legend:{position:'bottom'}}}
+    });
+
+    chartCollab = new Chart(ctxCollab, {
+      type:'bar',
+      data: { labels: Object.keys(collab), datasets: [{ data: Object.values(collab), backgroundColor: '#005BFF' }]},
+      options: { responsive:true, plugins:{legend:{display:false}}}
+    });
+
+    chartUrg = new Chart(ctxUrg, {
+      type:'pie',
+      data:{ labels:['Urgente','Normal'], datasets:[{ data:[urgent, normal], backgroundColor:['#FF6B00','#005BFF'] }]},
+      options:{ responsive:true }
+    });
+  }
+
+  function renderAll(filterCollab='', filterType='', filterStatus=''){
+    const listWrap = document.getElementById('alerts-list');
+    let alerts = loadAlerts();
+
+    // update dias/refDate
+    alerts.forEach(a=>{ if (a.refDate) a.dias = daysTo(a.refDate); });
+
+    // sort by priority
+    alerts.sort((a,b)=> priorityScore(b) - priorityScore(a));
+
+    // apply filters
+    if (filterCollab) alerts = alerts.filter(a=>a.colaborador===filterCollab);
+    if (filterType) alerts = alerts.filter(a=>a.tipo===filterType);
+    if (filterStatus) alerts = alerts.filter(a=>a.status===filterStatus);
+
+    listWrap.innerHTML = '';
+    if (!alerts.length) listWrap.innerHTML = '<div class="p-4 text-sm text-slate-500">Nenhum alerta encontrado.</div>';
+    alerts.forEach(a=> listWrap.appendChild(renderAlertCard(a)));
+
+    // update UI
+    updateMetrics(loadAlerts());
+    populateFilters(loadAlerts());
+    renderTimeline(loadAlerts());
+    renderCharts(loadAlerts());
+  }
+
+  /******************************
+   * UI: Modal create/edit & events
+   ******************************/
+  document.getElementById('openCreate').addEventListener('click', ()=>{
+    openModal('create');
+  });
+
+  function openModal(mode, alertObj){
+    const modal = document.getElementById('modal');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    document.getElementById('modalTitle').textContent = mode==='create' ? 'Criar Alerta' : 'Editar Alerta';
+    document.getElementById('mPaciente').value = alertObj?.paciente || '';
+    document.getElementById('mColab').value = alertObj?.colaborador || '';
+    document.getElementById('mTipo').value = alertObj?.tipo || 'Retorno';
+    document.getElementById('mRefDate').value = alertObj?.refDate || '';
+    document.getElementById('mNote').value = '';
+    document.getElementById('modalSave').onclick = ()=>{
+      const data = {
+        paciente: document.getElementById('mPaciente').value.trim(),
+        colaborador: document.getElementById('mColab').value.trim(),
+        tipo: document.getElementById('mTipo').value,
+        refDate: document.getElementById('mRefDate').value || null,
+        via: 'Manual',
+        urgente: false,
+        notes: []
+      };
+      if(!data.paciente){ toast('Informe o paciente'); return; }
+      // compute dias if refDate
+      if(data.refDate) data.dias = daysTo(data.refDate);
+      createAlert(data);
+      closeModal();
+      renderAll(currentFilters.collab, currentFilters.type, currentFilters.status);
+    };
+  }
+
+  function closeModal(){ const modal = document.getElementById('modal'); modal.classList.add('hidden'); modal.classList.remove('flex'); }
+
+  document.getElementById('modalCancel').addEventListener('click', closeModal);
+
+  // export CSV
+  document.getElementById('exportCSV').addEventListener('click', ()=>{
+    const alerts = loadAlerts();
+    if (!alerts.length) { toast('Nenhum alerta para exportar'); return; }
+    const rows = [['id','paciente','colaborador','tipo','dias','status','created_at','refDate']];
+    alerts.forEach(a=> rows.push([a.id,a.paciente,a.colaborador,a.tipo, a.dias === null ? '' : a.dias, a.status, a.created_at, a.refDate || '']));
+    const csv = rows.map(r=> r.map(c=> `"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'alertas.csv'; a.click(); URL.revokeObjectURL(url);
+    toast('CSV gerado');
+  });
+
+  /******************************
+   * SEARCH / FILTERS / THEME
+   ******************************/
+  document.getElementById('searchInput').addEventListener('input', (e)=>{
+    const q = e.target.value.trim().toLowerCase();
+    document.getElementById('clearSearch').classList.toggle('hidden', !q);
+    const alerts = loadAlerts().filter(a=>{
+      if(!q) return true;
+      return (a.paciente||'').toLowerCase().includes(q) || (a.tipo||'').toLowerCase().includes(q) || (a.colaborador||'').toLowerCase().includes(q);
+    });
+    // render filtered quickly
+    const listWrap = document.getElementById('alerts-list'); listWrap.innerHTML = '';
+    alerts.forEach(a=> listWrap.appendChild(renderAlertCard(a)));
+  });
+  document.getElementById('clearSearch').addEventListener('click', ()=>{ document.getElementById('searchInput').value=''; renderAll(); document.getElementById('clearSearch').classList.add('hidden'); });
+
+  // filters
+  document.getElementById('filter-collab').addEventListener('change', (e)=>{ currentFilters.collab = e.target.value; renderAll(currentFilters.collab, currentFilters.type, currentFilters.status); });
+  document.getElementById('filter-type').addEventListener('change', (e)=>{ currentFilters.type = e.target.value; renderAll(currentFilters.collab, currentFilters.type, currentFilters.status); });
+  document.getElementById('filter-status').addEventListener('change', (e)=>{ currentFilters.status = e.target.value; renderAll(currentFilters.collab, currentFilters.type, currentFilters.status); });
+
+  // theme toggle
+  (function themeInit(){
+    const root = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    const stored = localStorage.getItem(STORAGE_THEME);
+    if (stored === 'dark') root.classList.add('dark');
+    else if (stored === 'light') root.classList.remove('dark');
+    else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) root.classList.add('dark');
+
+    btn.addEventListener('click', ()=>{
+      const isDark = root.classList.contains('dark');
+      if(isDark){ root.classList.remove('dark'); localStorage.setItem(STORAGE_THEME,'light'); } else { root.classList.add('dark'); localStorage.setItem(STORAGE_THEME,'dark'); }
+    });
+  })();
+
+  // dashboard button (open separate file if exists)
+  document.getElementById('btn-dashboard').addEventListener('click', ()=> {
+    // if alertas-dashboard exists, open; otherwise show charts area (we keep it simple: open new page if exists)
+    try { window.location.href = './dash.html'; } catch { toast('Dashboard não disponível'); }
+  });
+
+  /******************************
+   * BOOTSTRAP: run initial automation and render
+   ******************************/
+  document.getElementById('btn-refresh').addEventListener('click', ()=>{
+    generateAlertsFromPatients();
+    renderAll();
+    const btn = document.getElementById('btn-refresh');
+    btn.textContent = 'Gerado agora ✓';
+    setTimeout(()=> btn.textContent = 'Atualizar (gerar agora)', 1600);
+  });
+
+  // initial
+  (function init(){
+    // generate the first time if none
+    if (!loadAlerts().length) generateAlertsFromPatients();
+    renderAll();
+  })();
+
+  </script>
+</body>
+</html>
