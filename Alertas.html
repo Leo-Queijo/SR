@@ -110,7 +110,7 @@
             <select id="filter-type" class="px-3 py-2 rounded-lg border dark:bg-slate-700">
               <option value="">Todos os tipos</option>
               <option value="Retorno">Retorno</option>
-              <option value="Garantia">Garantia</option>
+              <option value="Alta">Alta</option>
               <option value="Documentos">Documentos</option>
               <option value="Exames">Exames</option>
             </select>
@@ -206,7 +206,7 @@
         <input id="mColab" class="p-2 border rounded" placeholder="Colaborador responsável" />
         <select id="mTipo" class="p-2 border rounded">
           <option value="Retorno">Retorno</option>
-          <option value="Garantia">Garantia</option>
+          <option value="Alta">Alta</option>
           <option value="Documentos">Documentos</option>
           <option value="Exames">Exames</option>
           <option value="Outro">Outro</option>
@@ -235,11 +235,11 @@
 
   // Mock patient base — substitute with real data later
   const patients = [
-    { id: 1, name: "Mariana Silva", retorno: "2025-12-20", garantia: "2026-01-15", docs: false, exames: true, colaborador: "Ana" },
-    { id: 2, name: "João Pereira", retorno: "2026-01-10", garantia: "2025-12-02", docs: true, exames: false, colaborador: "Carla" },
-    { id: 3, name: "Pedro Santos", retorno: "2025-11-28", garantia: "2025-12-10", docs: false, exames: false, colaborador: "Carla" },
-    { id: 4, name: "Ana Costa", retorno: "2026-02-05", garantia: "2026-03-01", docs: true, exames: true, colaborador: "Rafael" },
-    { id: 5, name: "Lucas Almeida", retorno: addDays(new Date(), 5), garantia: addDays(new Date(), 28), docs: true, exames: true, colaborador: "Ana" }
+    { id: 1, name: "Mariana Silva", retorno: "2025-12-20", alta: "2026-01-15", docs: false, exames: true, colaborador: "Ana" },
+    { id: 2, name: "João Pereira", retorno: "2026-01-10", alta: "2025-12-02", docs: true, exames: false, colaborador: "Carla" },
+    { id: 3, name: "Pedro Santos", retorno: "2025-11-28", alta: "2025-12-10", docs: false, exames: false, colaborador: "Carla" },
+    { id: 4, name: "Ana Costa", retorno: "2026-02-05", alta: "2026-03-01", docs: true, exames: true, colaborador: "Rafael" },
+    { id: 5, name: "Lucas Almeida", retorno: addDays(new Date(), 5), alta: addDays(new Date(), 28), docs: true, exames: true, colaborador: "Ana" }
   ];
 
   function addDays(d, days){
@@ -273,7 +273,7 @@
     let score = 0;
     if (typeof alert.dias === 'number' && alert.dias !== null) score += Math.max(0, 60 - alert.dias) * 1.2;
     if (alert.tipo === 'Retorno') score += 8;
-    if (alert.tipo === 'Garantia') score += 7;
+    if (alert.tipo === 'Alta') score += 7;
     if (alert.tipo === 'Documentos') score += 6;
     if (alert.tipo === 'Exames') score += 6;
     if (alert.urgente) score += 12;
@@ -305,14 +305,14 @@
         }
       }
 
-      // garantia => 30 dias
-      const diasGar = daysTo(p.garantia);
+      // alta => 30 dias
+      const diasGar = daysTo(p.alta);
       if (diasGar !== null && diasGar <= 30 && diasGar >= 0) {
-        const key = `${p.id}|garantia|${p.garantia}`;
+        const key = `${p.id}|alta|${p.alta}`;
         if (!keys.has(key)) {
           stored.push({
             id: uid(), key, patientId: p.id, paciente: p.name, colaborador: p.colaborador,
-            tipo: 'Garantia', dias: diasGar, via: 'Sistema', urgente: diasGar <= 7, created_at: now, refDate: p.garantia, status: 'pendente', notes: []
+            tipo: 'Alta', dias: diasGar, via: 'Sistema', urgente: diasGar <= 7, created_at: now, refDate: p.alta, status: 'pendente', notes: []
           });
           keys.add(key);
         }
@@ -664,3 +664,4 @@
   </script>
 </body>
 </html>
+
