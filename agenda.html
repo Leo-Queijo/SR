@@ -1,4 +1,5 @@
 <!doctype html> 
+
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"/>
@@ -26,18 +27,20 @@ tailwind.config = {
 ::-webkit-scrollbar{width:8px}
 ::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:6px}
 </style>
+
 </head>
 
 <body class="bg-gray-100 dark:bg-slate-900 dark:text-slate-100">
 <div class="flex min-h-screen">
 
 <!-- SIDEBAR -->
-<aside class="hidden md:flex w-64 bg-white dark:bg-slate-800 shadow-xl p-6 flex-col gap-6">
+
+<aside class="hidden md:flex flex-col w-64 bg-white dark:bg-slate-800 shadow-xl p-6 gap-6 fixed md:static inset-y-0 z-50">
   <div class="flex items-center gap-3">
-    <div class="h-12 w-12 rounded-xl bg-brand_blue text-white flex items-center justify-center font-bold">SR</div>
+    <div class="h-12 w-12 rounded-xl bg-brand_blue text-white flex items-center justify-center text-xl font-bold shadow-md">SR</div>
     <div>
-      <h1 class="font-bold">CRM São Rafael</h1>
-      <p class="text-xs text-gray-500">Agenda Médica</p>
+      <h1 class="text-lg font-bold text-gray-900 dark:text-slate-100">CRM São Rafael</h1>
+      <p class="text-sm text-gray-500 dark:text-slate-400 -mt-1">Agenda Médica</p>
     </div>
   </div>
   <nav class="flex flex-col gap-2 flex-1">
@@ -50,11 +53,11 @@ tailwind.config = {
 </aside>
 
 <!-- CONTEÚDO -->
+
 <main class="flex-1 p-8 space-y-6">
 
 <h1 class="text-2xl font-bold">Agenda Médica</h1>
 
-<!-- MÉDICO -->
 <section class="bg-white dark:bg-slate-800 p-5 rounded-card shadow">
 <h2 class="text-xs text-gray-500 mb-2">1️⃣ Médico</h2>
 <select id="doctorSelect" class="w-full p-3 border rounded-lg">
@@ -64,7 +67,6 @@ tailwind.config = {
 </select>
 </section>
 
-<!-- PACIENTE -->
 <section class="bg-white dark:bg-slate-800 p-5 rounded-card shadow">
 <h2 class="text-xs text-gray-500 mb-2">2️⃣ Paciente</h2>
 <div class="grid gap-3">
@@ -73,7 +75,6 @@ tailwind.config = {
 </div>
 </section>
 
-<!-- CALENDÁRIO + HORÁRIOS -->
 <div class="grid md:grid-cols-2 gap-6">
 
 <section class="bg-white dark:bg-slate-800 p-5 rounded-card shadow">
@@ -83,15 +84,9 @@ tailwind.config = {
 <button onclick="changeMonth(1)">▶</button>
 </div>
 
-<!-- DIAS DA SEMANA -->
 <div class="grid grid-cols-7 text-center text-xs font-semibold text-gray-500 mb-2">
-  <div>Seg</div>
-  <div>Ter</div>
-  <div>Qua</div>
-  <div>Qui</div>
-  <div>Sex</div>
-  <div>Sáb</div>
-  <div>Dom</div>
+  <div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div>
+  <div>Sex</div><div>Sáb</div><div>Dom</div>
 </div>
 
 <div id="calendar" class="grid grid-cols-7 gap-2"></div>
@@ -114,7 +109,7 @@ const monthLabel=document.getElementById("monthLabel");
 const timeSlotsEl=document.getElementById("timeSlots");
 const selectedDateEl=document.getElementById("selectedDate");
 
-let current=new Date(), selectedKey=null;
+let current=new Date(), selectedKey=null, selectedSlot=null, selectedDateRef=null;
 
 const horarios=[
 "08:00","08:30","09:00","09:30",
@@ -130,7 +125,6 @@ calendar.innerHTML="";
 const y=current.getFullYear(),m=current.getMonth();
 monthLabel.textContent=current.toLocaleString("pt-BR",{month:"long",year:"numeric"});
 
-// 🔧 AJUSTE: semana começa na segunda
 let first=new Date(y,m,1).getDay();
 first = first === 0 ? 6 : first - 1;
 
@@ -157,6 +151,7 @@ renderCalendar();
 function loadDay(d,m,y){
 const date=new Date(y,m,d);
 selectedKey=date.toISOString().split("T")[0];
+selectedDateRef=selectedKey;
 selectedDateEl.textContent=date.toLocaleDateString("pt-BR");
 timeSlotsEl.innerHTML="";
 const data=load()[selectedKey]||{};
@@ -167,17 +162,24 @@ const slot=data[h];
 btn.className="p-2 rounded-lg border text-sm font-medium w-full";
 
 if(slot){
-btn.disabled=true;
 btn.classList.add(
 slot.status==="confirmado"?"bg-green-200":
 slot.status==="atendente"?"bg-yellow-200":"bg-gray-200"
 );
 btn.innerHTML=`${h}<span class="block text-xs">${slot.status}</span>`;
+btn.onclick=()=>{
+  selectedSlot=h;
+  loadDay(d,m,y);
+};
 }else{
 btn.classList.add("bg-green-50","hover:bg-green-100");
 btn.textContent=h;
-btn.onclick=()=>agendar(h);
+btn.onclick=()=>{
+  selectedSlot=h;
+  agendar(h);
+};
 }
+
 
 timeSlotsEl.appendChild(btn);
 });
@@ -205,6 +207,8 @@ alert("🔔 Agendamento criado (pendente)");
 }
 
 function enviarWhatsApp(nome,tel,h){
+const linkBase = window.location.origin + window.location.pathname;
+
 const msg=encodeURIComponent(
 `Olá ${nome} 👋
 Consulta agendada:
@@ -212,29 +216,73 @@ Consulta agendada:
 📅 ${selectedKey}
 ⏰ ${h}
 
-Responda:
-1️⃣ Confirmar
-2️⃣ Desmarcar
-3️⃣ Falar com atendente`
+Confirme clicando:
+${linkBase}?acao=1&data=${selectedKey}&hora=${h}
+
+Ou desmarque:
+${linkBase}?acao=2&data=${selectedKey}&hora=${h}
+
+Ou falar com atendente:
+${linkBase}?acao=3&data=${selectedKey}&hora=${h}`
 );
+
 window.open(`https://api.whatsapp.com/send?phone=55${tel}&text=${msg}`,"_blank");
 }
 
-// ⌨️ ATALHOS
-document.addEventListener("keydown",e=>{
-if(!selectedKey)return;
+// 🔥 CAPTURA AÇÃO VIA LINK (SIMULA WHATSAPP)
+function tratarAcaoURL(){
+const params=new URLSearchParams(window.location.search);
+const acao=params.get("acao");
+const dataKey=params.get("data");
+const hora=params.get("hora");
+
+if(!acao || !dataKey || !hora) return;
+
 const data=load();
-const slot=Object.values(data[selectedKey]||{})[0];
-if(!slot)return;
+if(!data[dataKey] || !data[dataKey][hora]) return;
+
+if(acao==="1"){
+data[dataKey][hora].status="confirmado";
+alert("✔ Consulta confirmada pelo paciente");
+}
+if(acao==="2"){
+delete data[dataKey][hora];
+alert("❌ Consulta cancelada pelo paciente");
+}
+if(acao==="3"){
+data[dataKey][hora].status="atendente";
+alert("🧑‍💼 Paciente pediu atendente");
+}
+
+save(data);
+
+// limpa URL
+window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+// teclado continua funcionando
+document.addEventListener("keydown",e=>{
+if(!selectedKey || !selectedSlot) return;
+
+const data=load();
+
+if(!data[selectedKey] || !data[selectedKey][selectedSlot]) return;
+
+const slot=data[selectedKey][selectedSlot];
 
 if(e.key==="1"){slot.status="confirmado";alert("✔ Consulta confirmada");}
-if(e.key==="2"){delete data[selectedKey];alert("❌ Consulta desmarcada");}
+if(e.key==="2"){delete data[selectedKey][selectedSlot];alert("❌ Consulta desmarcada");}
 if(e.key==="3"){slot.status="atendente";alert("🧑‍💼 Encaminhado ao atendente");}
 
 save(data);
-loadDay(new Date(selectedKey).getDate(),current.getMonth(),current.getFullYear());
+loadDay(
+new Date(selectedKey).getDate(),
+current.getMonth(),
+current.getFullYear()
+);
 });
 
+tratarAcaoURL();
 renderCalendar();
 </script>
 
