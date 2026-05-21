@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CRM Hospitalar 360º — Receita Médica</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+tailwind.config = {
+  theme:{
+    extend:{
+      colors:{ brand_blue:'#005BFF' }
+    }
+  }
+}
+</script>
+
+<style>
+canvas{border:2px dashed #cbd5e1;border-radius:8px}
+</style>
+</head>
+
+<body class="bg-gray-100">
+<div class="flex min-h-screen">
+
+<!-- SIDEBAR -->
+<aside class="w-64 bg-white shadow-xl p-6">
+  <h1 class="font-bold text-lg">Área do Médico</h1>
+  <p class="text-xs text-gray-500">Prescrição Médica</p>
+</aside>
+
+<!-- CONTEÚDO -->
+<main class="flex-1 p-8 space-y-6">
+
+<h1 class="text-2xl font-bold">📝 Receita Médica</h1>
+
+<!-- ERRO -->
+<div id="errorBox" class="hidden p-4 bg-red-100 text-red-700 rounded"></div>
+
+<!-- PACIENTE -->
+<section class="bg-white p-5 rounded shadow space-y-3">
+<h2 class="text-sm text-gray-500">Paciente</h2>
+<input id="pacienteNome" class="w-full p-3 border rounded" placeholder="Nome do paciente">
+<input id="pacienteCPF" class="w-full p-3 border rounded" placeholder="CPF">
+<input id="pacienteEmail" class="w-full p-3 border rounded" placeholder="Email do paciente">
+<input id="pacienteWhats" class="w-full p-3 border rounded" placeholder="WhatsApp (DDD + número)">
+</section>
+
+<!-- RECEITA -->
+<section class="bg-white p-5 rounded shadow space-y-3">
+<h2 class="text-sm text-gray-500">Receita</h2>
+<textarea id="receitaTexto" rows="6" class="w-full p-3 border rounded"
+placeholder="Medicamento, dosagem e orientações"></textarea>
+</section>
+
+<!-- ASSINATURA -->
+<section class="bg-white p-5 rounded shadow space-y-3">
+<h2 class="text-sm text-gray-500">Assinatura do Médico</h2>
+<canvas id="signature" width="420" height="140"></canvas>
+<button onclick="limparAssinatura()" class="px-4 py-2 bg-gray-200 rounded">
+Limpar assinatura
+</button>
+</section>
+
+<button onclick="finalizarReceita()"
+class="px-6 py-3 bg-brand_blue text-white rounded-lg font-semibold">
+Finalizar Receita
+</button>
+
+</main>
+</div>
+
+<script>
+// ================= ASSINATURA =================
+const canvas=document.getElementById("signature");
+const ctx=canvas.getContext("2d");
+let drawing=false;
+
+canvas.addEventListener("mousedown",()=>drawing=true);
+canvas.addEventListener("mouseup",()=>{drawing=false;ctx.beginPath();});
+canvas.addEventListener("mousemove",e=>{
+ if(!drawing)return;
+ ctx.lineWidth=2;
+ ctx.lineCap="round";
+ ctx.lineTo(e.offsetX,e.offsetY);
+ ctx.stroke();
+ ctx.beginPath();
+ ctx.moveTo(e.offsetX,e.offsetY);
+});
+
+function limparAssinatura(){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+// ================= FINALIZAR =================
+function finalizarReceita(){
+ const erro=document.getElementById("errorBox");
+ erro.classList.add("hidden");
+
+ const nome=pacienteNome.value.trim();
+ const cpf=pacienteCPF.value.trim();
+ const email=pacienteEmail.value.trim();
+ const whats=pacienteWhats.value.trim();
+ const texto=receitaTexto.value.trim();
+
+ if(!nome||!cpf||!email||!whats||!texto){
+   mostrarErro("Todos os campos do paciente e da receita são obrigatórios.");
+   return;
+ }
+
+ // valida assinatura (canvas vazio)
+ const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+ const temAssinatura=[...pixels].some(v=>v!==0);
+ if(!temAssinatura){
+   mostrarErro("❌ A receita só é válida com a assinatura do médico.");
+   return;
+ }
+
+ const id="RX-"+Date.now();
+ const url=`https://crm360.local/receita/${id}`;
+
+ const receita={
+   id,url,
+   paciente:{nome,cpf,email,whats},
+   medico:"Dr. João Silva",
+   texto,
+   data:new Date().toLocaleDateString("pt-BR"),
+   assinatura:canvas.toDataURL()
+ };
+
+ localStorage.setItem(id,JSON.stringify(receita));
+
+ enviarWhatsApp(whats,url);
+ enviarEmail(email,url);
+
+ alert("✅ Receita validada e enviada com sucesso!");
+}
+
+function mostrarErro(msg){
+ const erro=document.getElementById("errorBox");
+ erro.textContent=msg;
+ erro.classList.remove("hidden");
+}
+
+// ================= COMUNICAÇÃO =================
+function enviarWhatsApp(tel,url){
+ const msg=encodeURIComponent(
+`Olá 👋
+Sua receita médica está pronta ✅
+
+📄 Acesse pelo link:
+${url}`
+ );
+ window.open(`https://api.whatsapp.com/send?phone=55${tel}&text=${msg}`,"_blank");
+}
+
+function enviarEmail(email,url){
+ console.log("📧 EMAIL ENVIADO");
+ console.log("Para:",email);
+ console.log("Link da receita:",url);
+}
+</script>
+
+</body>
+</html>
